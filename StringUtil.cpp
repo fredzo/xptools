@@ -37,8 +37,8 @@
 #ifdef _WIN32
 #include <windows.h>
 #else
-#include <locale>
-#include <codecvt>
+#include <cwchar>
+#include <clocale>
 #endif
 
 /**
@@ -62,9 +62,15 @@ std::string WstringToString(const std::wstring &wstr)
 	return res;
 #else
     // Linux / macOS
-    std::wstring ws(wstr);
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> conv;
-    return conv.to_bytes(ws);
+    std::size_t len = std::wcstombs(nullptr, wstr.c_str(), 0);
+
+    if (len == static_cast<std::size_t>(-1))
+        return "Invalid wide-character sequence or invalid locale";
+
+    std::string result(len, '\0');
+    std::wcstombs(result.data(), wstr.c_str(), len);
+
+    return result;
 #endif // _WIN32
 }
 
@@ -89,7 +95,14 @@ std::wstring StringToWstring(const std::string &str)
 	return res;
 #else
     // Linux / macOS
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> conv;
-    return conv.from_bytes(str);
+    std::size_t len = std::mbstowcs(nullptr, str.c_str(), 0);
+
+    if (len == static_cast<std::size_t>(-1))
+        return L"Invalid UTF-8 string or invalid locale";
+
+    std::wstring result(len, L'\0');
+    std::mbstowcs(result.data(), str.c_str(), len);
+
+    return result;
 #endif // _WIN32
 }
